@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Users, ShoppingCart, BarChart3 } from 'lucide-react';
+import { FileText, Users, ShoppingCart, BarChart3, Code } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: string;
@@ -10,7 +10,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
-    { id: 'reports', label: 'Reports', icon: BarChart3 }
+    { id: 'reports', label: 'Reports', icon: BarChart3 },
+    { id: 'html-templates', label: 'HTML Templates', icon: Code }
   ];
 
   return (

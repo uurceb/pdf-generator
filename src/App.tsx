@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { CustomerList } from './components/CustomerList';
 import { OrderList } from './components/OrderList';
 import { ReportsView } from './components/ReportsView';
+import { HTMLTemplatePDF } from './components/HTMLTemplatePDF';
 
 function App() {
   const [activeTab, setActiveTab] = useState('customers');
@@ -15,6 +16,8 @@ function App() {
         return <OrderList />;
       case 'reports':
         return <ReportsView />;
+      case 'html-templates':
+        return <HTMLTemplatePDF />;
       default:
         return <CustomerList />;
     }
