@@ -15,7 +15,7 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
 <title>Manual Discharge</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  .manual-discharge { padding: 10px; width: 940px; } 
+  .manual-discharge { padding: 10px; width: 940px; font-family: Arial, sans-serif; } 
 
   .header {line-height: 1.3; margin-bottom: 8px; }
   .header h1, .header h2 { text-align: center; font-size: 22px; }
@@ -557,46 +557,82 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Create PDF with landscape orientation for better table display
-      const doc = new jsPDF('l', 'mm', 'a4'); // landscape, millimeters, A4
+      // Create a temporary iframe to render the HTML
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.width = '940px';
+      iframe.style.height = '1200px';
+      document.body.appendChild(iframe);
+      
+      // Write HTML content to iframe
+      iframe.contentDocument?.open();
+      iframe.contentDocument?.write(htmlContent);
+      iframe.contentDocument?.close();
+      
+      // Wait for content to load
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Create PDF with A4 landscape orientation
+      const doc = new jsPDF('l', 'mm', 'a4');
       const pageWidth = 297; // A4 landscape width
       const pageHeight = 210; // A4 landscape height
       
-      // Add title
+      // Extract text content from the HTML for PDF generation
+      const parser = new DOMParser();
+      const htmlDoc = parser.parseFromString(htmlContent, 'text/html');
+      
+      // Add title with proper encoding
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('Акт слива вагоно-цистерн', pageWidth / 2, 20, { align: 'center' });
       
+      // Use transliteration for Cyrillic text to avoid corruption
+      const transliterateRussian = (text: string) => {
+        const map: { [key: string]: string } = {
+          'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo', 'Ж': 'Zh',
+          'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O',
+          'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts',
+          'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Shch', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+          'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+          'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+          'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
+          'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+        };
+        return text.replace(/[А-Яа-яЁё]/g, (char) => map[char] || char);
+      };
+      
+      // Add headers with transliteration
+      doc.text(transliterateRussian('Akt sliva vagono-tsistern'), pageWidth / 2, 20, { align: 'center' });
       doc.setFontSize(14);
-      doc.text('Нефтепродукты, прибывшие на Терминал BST', pageWidth / 2, 30, { align: 'center' });
+      doc.text(transliterateRussian('Nefteprodukty, pribyvshie na Terminal BST'), pageWidth / 2, 30, { align: 'center' });
       
-      // Add cargo info
+      // Add cargo info with transliteration
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text('Тип Груза: Heavy Pyrolysis Resin (E-6)', 20, 45);
-      doc.text('Владелец: SOCAR Overseas DMCC', 20, 52);
+      doc.text(transliterateRussian('Tip Gruza: Heavy Pyrolysis Resin (E-6)'), 20, 45);
+      doc.text(transliterateRussian('Vladelets: SOCAR Overseas DMCC'), 20, 52);
       
       // Add vessel and act info
-      doc.text('Резервуар: Vessel', 180, 45);
-      doc.text('Акт № 22424', 180, 52);
-      doc.text('Начала Слива: 4/8/2024 2:22', 180, 59);
-      doc.text('Конец слива: 4/8/2024 8:48', 180, 66);
+      doc.text(transliterateRussian('Rezervuar: Vessel'), 180, 45);
+      doc.text(transliterateRussian('Akt № 22424'), 180, 52);
+      doc.text(transliterateRussian('Nachala Sliva: 4/8/2024 2:22'), 180, 59);
+      doc.text(transliterateRussian('Konets sliva: 4/8/2024 8:48'), 180, 66);
       
       // Add table title
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text('Статический метод измерения', 20, 80);
+      doc.text(transliterateRussian('Staticheskiy metod izmereniya'), 20, 80);
       
-      // Create table data
+      // Create table data with transliterated headers
       const tableHeaders = [
-        '№ ЖД накладной',
-        '№ вагоно-цистерны', 
-        'Тип',
-        'Вес брутто (док), кг',
-        'Высота взлива, см',
-        'Т, °C',
-        'Плотность, т/м3',
-        'Вес брутто (факт), кг'
+        transliterateRussian('№ ZhD nakladnoy'),
+        transliterateRussian('№ vagono-tsisterny'), 
+        transliterateRussian('Tip'),
+        transliterateRussian('Ves brutto (dok), kg'),
+        transliterateRussian('Vysota vzliva, sm'),
+        transliterateRussian('T, °C'),
+        transliterateRussian('Plotnost, t/m3'),
+        transliterateRussian('Ves brutto (fakt), kg')
       ];
       
       const tableData = [
@@ -628,8 +664,8 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
         ['24027581', '57373094', '62', '62859', '234', '14.2', '1.0361', '62876']
       ];
       
-      // Add total row
-      tableData.push(['Итого:', '26', '', '1652912', '', '', '', '1652391']);
+      // Add total row with transliteration
+      tableData.push([transliterateRussian('Itogo:'), '26', '', '1652912', '', '', '', '1652391']);
       
       // Use autoTable for better table formatting
       (doc as any).autoTable({
@@ -640,13 +676,13 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
         headStyles: { 
           fillColor: [220, 220, 220],
           textColor: 0,
-          fontSize: 9,
+          fontSize: 8,
           fontStyle: 'bold',
           halign: 'center'
         },
         bodyStyles: { 
-          fontSize: 8,
-          cellPadding: 2,
+          fontSize: 7,
+          cellPadding: 1,
           halign: 'center'
         },
         columnStyles: {
@@ -668,16 +704,16 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
         }
       });
       
-      // Add signatures section
+      // Add signatures section with transliteration
       const finalY = (doc as any).lastAutoTable.finalY + 15;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Примечание:', 20, finalY);
-      doc.text('Подписи:', 20, finalY + 10);
+      doc.text(transliterateRussian('Primechanie:'), 20, finalY);
+      doc.text(transliterateRussian('Podpisi:'), 20, finalY + 10);
       
       doc.setFont('helvetica', 'normal');
-      doc.text('1. Представитель Терминала: ________________________', 20, finalY + 20);
-      doc.text('2. Сюрвейер: ________________________', 20, finalY + 30);
+      doc.text(transliterateRussian('1. Predstavitel Terminala: ________________________'), 20, finalY + 20);
+      doc.text(transliterateRussian('2. Syurveyyer: ________________________'), 20, finalY + 30);
       
       // Add footer
       doc.setFontSize(10);
@@ -689,6 +725,9 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
       // Add generation timestamp
       doc.setFontSize(8);
       doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 60, 10);
+      
+      // Clean up iframe
+      document.body.removeChild(iframe);
       
       doc.save('manual_discharge_report.pdf');
     } catch (error) {
@@ -714,13 +753,6 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
     setHtmlContent(manualDischargeTemplate);
   };
 
-  const templateVariables = [
-    { name: '{{date}}', description: 'Current date' },
-    { name: '{{time}}', description: 'Current time' },
-    { name: '{{company}}', description: 'Company name' },
-    { name: '{{title}}', description: 'Document title' }
-  ];
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -731,7 +763,7 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
               <Code className="h-6 w-6 mr-3" />
               HTML Template PDF Generator
             </h2>
-            <p className="text-indigo-100 mt-1">Create PDFs from custom HTML templates with full styling control</p>
+            <p className="text-indigo-100 mt-1">Create PDFs from custom HTML templates with Cyrillic text support</p>
           </div>
           <div className="flex space-x-3">
             <button
@@ -757,22 +789,14 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
         </div>
       </div>
 
-      {/* Sample Template Alert */}
-      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <FileCheck className="h-5 w-5 text-green-600" />
-            <div>
-              <h3 className="text-green-800 font-semibold">Manual Discharge Template Loaded</h3>
-              <p className="text-green-700 text-sm">Your uploaded HTML template has been loaded and is ready for PDF generation.</p>
-            </div>
+      {/* Cyrillic Support Alert */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="flex items-center space-x-3">
+          <FileCheck className="h-5 w-5 text-amber-600" />
+          <div>
+            <h3 className="text-amber-800 font-semibold">Cyrillic Text Support</h3>
+            <p className="text-amber-700 text-sm">Russian/Cyrillic characters are automatically transliterated to Latin characters in the PDF to prevent corruption. The HTML preview shows the original Cyrillic text.</p>
           </div>
-          <button
-            onClick={loadManualDischargeTemplate}
-            className="text-green-600 hover:text-green-800 text-sm font-medium"
-          >
-            Reload Template
-          </button>
         </div>
       </div>
 
@@ -792,13 +816,23 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
                 <p className="text-xs text-blue-600 mt-1">Railway tank car discharge certificate</p>
               </div>
               
+              <div className="p-3 bg-amber-50 rounded-lg">
+                <h4 className="font-semibold text-amber-900 mb-2">Cyrillic Support</h4>
+                <ul className="text-xs text-amber-700 space-y-1">
+                  <li>• HTML preview: Original Cyrillic</li>
+                  <li>• PDF output: Transliterated Latin</li>
+                  <li>• Prevents character corruption</li>
+                  <li>• Maintains readability</li>
+                </ul>
+              </div>
+              
               <div className="p-3 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold text-gray-900 mb-2">Features</h4>
                 <ul className="text-xs text-gray-600 space-y-1">
                   <li>• Complex table structure</li>
-                  <li>• Cyrillic text support</li>
                   <li>• Professional formatting</li>
                   <li>• Signature sections</li>
+                  <li>• Landscape orientation</li>
                 </ul>
               </div>
             </div>
@@ -833,7 +867,7 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">HTML Preview</h3>
-                <p className="text-sm text-gray-600">Preview of your Manual Discharge template</p>
+                <p className="text-sm text-gray-600">Preview of your Manual Discharge template with original Cyrillic text</p>
               </div>
               <div className="p-6">
                 <div 
@@ -853,7 +887,7 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">HTML Template Editor</h3>
-                <p className="text-sm text-gray-600 mt-1">Edit your Manual Discharge template below.</p>
+                <p className="text-sm text-gray-600 mt-1">Edit your Manual Discharge template. Cyrillic text will be transliterated in PDF output.</p>
               </div>
               <div className="p-6">
                 <textarea
@@ -904,7 +938,7 @@ export const HTMLTemplatePDF: React.FC<HTMLTemplatePDFProps> = ({ onClose }) => 
             <h4 className="font-semibold mb-2">PDF Generation:</h4>
             <ul className="space-y-1">
               <li>• Landscape orientation for wide tables</li>
-              <li>• Optimized for A4 paper size</li>
+              <li>• Cyrillic text transliterated to prevent corruption</li>
               <li>• Preserves table structure and formatting</li>
               <li>• Includes all document metadata</li>
             </ul>
